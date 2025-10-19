@@ -51,46 +51,46 @@ export function DeviceGrid({ candidates, onDeviceClick }: DeviceGridProps) {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    <div className="mobile-grid-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {candidates.map((candidate) => (
         <div
           key={candidate.device.key}
           onClick={() => onDeviceClick(candidate)}
-          className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600 transition-all cursor-pointer"
+          className="mobile-card bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600 transition-all cursor-pointer"
         >
           {/* Header with device name and confidence */}
-          <div className="flex items-start justify-between mb-3">
+          <div className="flex items-start justify-between mb-3 mobile-flex-col sm:flex-row sm:items-center sm:justify-between">
             <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate">
+              <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate mobile-text-base">
                 {candidate.device.name || 'Unknown Device'}
               </h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 mobile-text-sm">
                 {candidate.device.mac}
               </p>
             </div>
-            <div className="ml-2 flex-shrink-0">
-              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getConfidenceColor(candidate.confidence)}`}>
+            <div className="ml-0 mt-2 sm:ml-2 sm:mt-0 flex-shrink-0">
+              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs sm:text-xs font-medium ${getConfidenceColor(candidate.confidence)}`}>
                 {Math.round(candidate.confidence * 100)}%
               </span>
             </div>
           </div>
 
           {/* Manufacturer and category */}
-          <div className="flex items-center mb-3">
+          <div className="flex items-center mb-3 mobile-items-center mobile-flex-col sm:items-center">
             {candidate.device.manufacturer ? (
               <>
-                <span className="text-lg mr-2">{getCategoryIcon(candidate.device.manufacturer.category)}</span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                <span className="text-lg mr-2 mobile-text-xl">{getCategoryIcon(candidate.device.manufacturer.category)}</span>
+                <div className="min-w-0 flex-1 mobile-text-center sm:text-left">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate mobile-text-base">
                     {candidate.device.manufacturer.name}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mobile-text-sm">
                     {candidate.device.manufacturer.category} • {getConfidenceLabel(candidate.confidence)} confidence
                   </p>
                 </div>
               </>
             ) : (
-              <div className="text-sm text-gray-500 dark:text-gray-400">
+              <div className="text-sm text-gray-500 dark:text-gray-400 mobile-text-base">
                 Unknown manufacturer
               </div>
             )}
@@ -171,8 +171,8 @@ export function DeviceGrid({ candidates, onDeviceClick }: DeviceGridProps) {
           </div>
 
           {/* Hover indicator */}
-          <div className="mt-3 text-center">
-            <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+          <div className="mt-3 text-center mobile-text-center">
+            <span className="text-xs text-blue-600 dark:text-blue-400 font-medium mobile-text-sm">
               Click for details →
             </span>
           </div>

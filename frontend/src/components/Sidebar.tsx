@@ -258,7 +258,7 @@ export function Sidebar({
                     className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                   >
                     <option value="">All compliance levels</option>
-                    <option value="NON_COMPLIANT">Non-Compliant (Channels above 13)</option>
+                    <option value="NON_COMPLIANT">Non-Compliant (Channels &gt; 13)</option>
                     <option value="QUESTIONABLE">Questionable</option>
                     <option value="COMPLIANT">Compliant</option>
                   </select>
@@ -274,7 +274,7 @@ export function Sidebar({
                       className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:bg-gray-700"
                     />
                     <span className="text-sm text-gray-700 dark:text-gray-300">
-                      Extended Channels Only (above 13)
+                      Extended Channels Only (&gt; 13)
                     </span>
                   </label>
                   <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">

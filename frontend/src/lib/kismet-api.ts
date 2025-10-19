@@ -8,7 +8,11 @@ import {
   InterferenceInfo,
   PacketData,
   ManufacturerDatabaseEntry,
-  KismetConfig
+  KismetConfig,
+  DataSourceInterface,
+  DataSourceConfig,
+  AddSourceRequest,
+  ConfigureSourceRequest
 } from '@/types/kismet';
 
 // Enhanced manufacturer database with categories and confidence
@@ -188,6 +192,197 @@ export class KismetService {
       console.error('Failed to retrieve devices:', error);
       return [];
     }
+  }
+
+  // Data Source Interface Management Methods
+
+  async getAvailableInterfaces(): Promise<DataSourceInterface[]> {
+    try {
+      const response = await fetch(`/api/kismet?endpoint=/datasource/list_interfaces.json&apiKey=${this.apiKey}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Transform Kismet 2025.09.0 interface data to our format
+      const interfaces: DataSourceInterface[] = [];
+
+      if (Array.isArray(data)) {
+        for (const iface of data) {
+          const kismetInterface = iface as Record<string, unknown>;
+          const driverInfo = kismetInterface['kismet.datasource.type_driver'] as Record<string, unknown>;
+
+          interfaces.push({
+            name: kismetInterface['kismet.datasource.probed.interface'] as string,
+            driver: driverInfo['kismet.datasource.driver.type'] as string,
+            hardware: kismetInterface['kismet.datasource.probed.hardware'] as string,
+            version: kismetInterface['kismet.datasource.probed.datasource_version'] as string,
+            type: driverInfo['kismet.datasource.driver.type'] as string,
+            capabilities: this.getInterfaceCapabilities(driverInfo),
+            description: driverInfo['kismet.datasource.driver.description'] as string,
+            status: this.determineInterfaceStatus2025(kismetInterface),
+            interface_type: this.determineInterfaceType2025(driverInfo['kismet.datasource.driver.type'] as string)
+          });
+        }
+      }
+
+      return interfaces;
+    } catch (error) {
+      console.warn('Failed to fetch interfaces from Kismet API:', error);
+      throw error;
+    }
+  }
+
+  async getActiveDataSources(): Promise<DataSourceConfig[]> {
+    try {
+      const response = await fetch(`/api/kismet?endpoint=/datasource/all_sources.json&apiKey=${this.apiKey}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Transform Kismet source data to our format
+      const sources: DataSourceConfig[] = [];
+
+      if (data && data.datasources) {
+        for (const source of data.datasources as Array<Record<string, unknown>>) {
+          const kismetData = (source.kismet as Record<string, unknown>)?.datasource as Record<string, unknown>;
+          const sourceData: DataSourceConfig = {
+            uuid: (kismetData.uuid as string) || '',
+            name: (kismetData.name as string) || '',
+            interface: (kismetData.interface as string) || '',
+            driver: (kismetData.driver as string) || '',
+            hardware: (kismetData.hardware as string) || '',
+            channel: kismetData.channel?.toString(),
+            hop: (kismetData.hopping as boolean) || false,
+            hop_rate: kismetData.hop_rate as number,
+            channels: kismetData.channels as string[],
+            active: (kismetData.running as boolean) || false,
+            capture_options: (kismetData.source_options as Record<string, unknown>) || {}
+          };
+          sources.push(sourceData);
+        }
+      }
+
+      return sources;
+    } catch (error) {
+      console.error('Error fetching active data sources:', error);
+      return [];
+    }
+  }
+
+  async addDataSource(request: AddSourceRequest): Promise<string> {
+    try {
+      const response = await fetch(`/api/kismet?endpoint=/datasource/add_source.cmd&apiKey=${this.apiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data['kismet.datasource.uuid'] || '';
+    } catch (error) {
+      console.error('Error adding data source:', error);
+      throw error;
+    }
+  }
+
+  async removeDataSource(uuid: string): Promise<boolean> {
+    try {
+      const response = await fetch(`/api/kismet?endpoint=/datasource/remove_source&apiKey=${this.apiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ uuid }),
+      });
+
+      return response.ok;
+    } catch (error) {
+      console.error('Error removing data source:', error);
+      return false;
+    }
+  }
+
+  async configureDataSource(request: ConfigureSourceRequest): Promise<boolean> {
+    try {
+      const { uuid, config } = request;
+
+      // Build channel configuration based on the documentation
+      const channelConfig: Record<string, unknown> = {};
+
+      if (config.channel) {
+        channelConfig.channel = config.channel;
+      }
+
+      if (config.hop !== undefined) {
+        channelConfig.hop = config.hop ? 1 : 0;
+      }
+
+      if (config.hop_rate) {
+        channelConfig.rate = config.hop_rate;
+      }
+
+      if (config.channels && config.channels.length > 0) {
+        channelConfig.channels = config.channels;
+      }
+
+      const response = await fetch(`/api/kismet?endpoint=/datasource/by-uuid/${uuid}/set_channel.cmd&apiKey=${this.apiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(channelConfig),
+      });
+
+      return response.ok;
+    } catch (error) {
+      console.error('Error configuring data source:', error);
+      return false;
+    }
+  }
+
+  async selectInterface(interfaceName: string, options?: {
+    channel?: string;
+    hop?: boolean;
+    hopRate?: number;
+  }): Promise<string> {
+    // For Kismet 2025.09.0, we just pass the interface name as definition
+    // Additional configuration can be done later with set_channel.cmd
+    // Kismet API expects 'definition' field, not 'source'
+    const requestData = {
+      definition: interfaceName,
+      name: `Monitoring on ${interfaceName}`
+    };
+
+    const response = await fetch(`/api/kismet?endpoint=/datasource/add_source.cmd&apiKey=${this.apiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestData),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const uuid = data['kismet.datasource.uuid'] || '';
+
+    // For now, skip immediate configuration since the datasource starts with working defaults
+    // Configuration can be done later through the UI if needed
+    // TODO: Add proper configuration after datasource is fully initialized
+
+    return uuid;
   }
 
   private parseDevice(deviceData: KismetDeviceResponse): Device {
@@ -977,6 +1172,116 @@ export class KismetService {
     });
 
     return [headers, ...rows].map(row => row.join(',')).join('\n');
+  }
+
+  private determineInterfaceStatus(info: Record<string, unknown>): 'available' | 'in-use' | 'error' | 'incompatible' {
+    // Determine interface status based on Kismet data
+    if (info.in_use) {
+      return 'in-use';
+    }
+    if (info.error) {
+      return 'error';
+    }
+    if (info.capable === false) {
+      return 'incompatible';
+    }
+    return 'available';
+  }
+
+  private determineInterfaceType(driver: string): 'linuxwifi' | 'linuxbluetooth' | 'other' {
+    if (driver.includes('wifi') || driver.includes('mac80211')) {
+      return 'linuxwifi';
+    }
+    if (driver.includes('bluetooth') || driver.includes('hci')) {
+      return 'linuxbluetooth';
+    }
+    return 'other';
+  }
+
+  private getInterfaceCapabilities(driverInfo: Record<string, unknown>): string[] {
+    const capabilities: string[] = [];
+
+    if (driverInfo['kismet.datasource.driver.hop_capable'] === 1) {
+      capabilities.push('channel_hop');
+    }
+    if (driverInfo['kismet.datasource.driver.tuning_capable'] === 1) {
+      capabilities.push('tuning');
+    }
+    if (driverInfo['kismet.datasource.driver.probe_capable'] === 1) {
+      capabilities.push('probe');
+    }
+    if (driverInfo['kismet.datasource.driver.list_capable'] === 1) {
+      capabilities.push('list_interfaces');
+    }
+
+    const driverType = driverInfo['kismet.datasource.driver.type'] as string;
+    if (driverType === 'linuxwifi') {
+      capabilities.push('wifi', 'monitor');
+    } else if (driverType === 'linuxbluetooth') {
+      capabilities.push('bluetooth', 'ble');
+    }
+
+    return capabilities;
+  }
+
+  private determineInterfaceStatus2025(kismetInterface: Record<string, unknown>): 'available' | 'in-use' | 'error' | 'incompatible' {
+    const inUseUuid = kismetInterface['kismet.datasource.probed.in_use_uuid'] as string;
+
+    if (inUseUuid && inUseUuid !== '00000000-0000-0000-0000-000000000000') {
+      return 'in-use';
+    }
+
+    return 'available';
+  }
+
+  private determineInterfaceType2025(driverType: string): 'linuxwifi' | 'linuxbluetooth' | 'other' {
+    if (driverType === 'linuxwifi') {
+      return 'linuxwifi';
+    }
+    if (driverType === 'linuxbluetooth') {
+      return 'linuxbluetooth';
+    }
+    return 'other';
+  }
+
+  private getMockInterfaces(): DataSourceInterface[] {
+    // Mock interfaces based on typical Linux system interfaces
+    // These match what you'd see in Kismet UI: hci0 (bluetooth), wlan0/wlan1 (wifi)
+    return [
+      {
+        name: 'hci0',
+        driver: 'linuxbluetooth',
+        hardware: 'Bluetooth Controller',
+        version: '2025.09.0-b5d5a2d04',
+        type: 'bluetooth',
+        capabilities: ['bluetooth', 'ble', 'bt_scan'],
+        description: 'Bluetooth interface for device discovery',
+        status: 'available',
+        interface_type: 'linuxbluetooth'
+      },
+      {
+        name: 'wlan0',
+        driver: 'nl80211',
+        hardware: 'Wireless LAN Controller',
+        version: '2025.09.0-b5d5a2d04',
+        type: 'wifi',
+        capabilities: ['wifi', 'monitor', 'injection'],
+        description: 'Primary WiFi interface for network monitoring',
+        status: 'available',
+        interface_type: 'linuxwifi'
+      },
+      {
+        name: 'wlan1',
+        driver: 'rtw_8821cu',
+        hardware: 'Realtek RTL8821CU',
+        version: '2025.09.0-b5d5a2d04',
+        type: 'wifi',
+        capabilities: ['wifi', 'monitor', '5ghz', '2ghz'],
+        description: 'Secondary WiFi interface with dual-band support',
+        status: 'available',
+        interface_type: 'linuxwifi'
+      }
+    ];
   }
 }
 

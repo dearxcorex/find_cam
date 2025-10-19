@@ -158,3 +158,48 @@ export interface ManufacturerDatabaseEntry {
   aliases?: string[];
   source?: 'hardcoded' | 'mac_api' | 'kismet';
 }
+
+// Data Source Interface Types
+export interface DataSourceInterface {
+  name: string;
+  driver: string;
+  hardware: string;
+  version: string;
+  type: string;
+  capabilities: string[];
+  description?: string;
+  status: 'available' | 'in-use' | 'error' | 'incompatible';
+  interface_type: 'linuxwifi' | 'linuxbluetooth' | 'other';
+}
+
+export interface DataSourceConfig {
+  uuid: string;
+  name: string;
+  interface: string;
+  driver: string;
+  hardware?: string;
+  channel?: string;
+  hop?: boolean;
+  hop_rate?: number;
+  channels?: string[];
+  active: boolean;
+  capture_options?: Record<string, unknown>;
+}
+
+export interface DataSourceListResponse {
+  kismet_version: string;
+  timestamp: number;
+  interfaces: DataSourceInterface[];
+  sources: DataSourceConfig[];
+}
+
+export interface AddSourceRequest {
+  source: string;
+  name?: string;
+  options?: Record<string, unknown>;
+}
+
+export interface ConfigureSourceRequest {
+  uuid: string;
+  config: Partial<DataSourceConfig>;
+}
