@@ -132,6 +132,19 @@ export const CAMERA_KEYWORDS = [
 // Common camera ports
 export const CAMERA_PORTS = [554, 80, 8080, 443, 8000, 8554, 9080, 1935, 5000, 8001];
 
+// Helper function for frequency band classification
+function classifyFrequencyBand(freqMhz: number): '2.4GHz' | '5GHz' | '6GHz' | 'unknown' {
+  if (freqMhz >= 2400 && freqMhz <= 2495) {
+    return '2.4GHz';
+  } else if (freqMhz >= 5000 && freqMhz <= 5895) {
+    return '5GHz';
+  } else if (freqMhz >= 5925 && freqMhz <= 7125) {
+    return '6GHz';
+  } else {
+    return 'unknown';
+  }
+}
+
 export class KismetService {
   private host: string;
   private apiKey: string;
@@ -252,7 +265,7 @@ export class KismetService {
       }
 
       const freqGhz = freqMhz / 1000;
-      const band = this.classifyFrequencyBand(freqMhz);
+      const band = classifyFrequencyBand(freqMhz);
       const channel = channelStr || this.getChannelFromPreciseFrequency(freqMhz);
       const channelWidth = this.getChannelWidth(channel) || null;
       const isStandardWifi = this.isStandardWifiFrequency(freqMhz);
@@ -268,18 +281,12 @@ export class KismetService {
         channelWidth,
         band,
         isStandardWifi,
-        interferenceInfo || undefined
+        interferenceInfo: interferenceInfo || undefined
       };
     } catch (error) {
       console.error('Error processing frequency:', error);
       return null;
     }
-  }
-
-  
-  private classifyFrequencyBand(freqMhz: number): string {
-    // TODO: Fix parsing error
-    return '2.4GHz';
   }
 
   private getChannelFromPreciseFrequency(freqMhz: number): string | null {
@@ -925,28 +932,19 @@ export class KismetService {
           mac: candidate.device.mac,
           name: candidate.device.name,
           type: candidate.device.type,
-          signal: candidate.device.signal,
-          channel: candidate.device.channel,
-          vendor: candidate.device.vendor,
+          signal: candidate.device.signal || null,
+          channel: candidate.device.channel || null,
+          vendor: candidate.device.vendor || null,
           ipAddresses: candidate.device.ipAddresses,
-          lastSeen: candidate.device.lastSeen
-        },
+          lastSeen: candidate.device.lastSeen || null,
+          manufacturer: candidate.device.manufacturer || null,
+          frequencyInfo: candidate.device.frequencyInfo || null,
+          rawData: includeRawData ? candidate.device.rawData : undefined
+        } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
         confidence: candidate.confidence,
         reasons: candidate.reasons,
         openPorts: candidate.openPorts
       };
-
-      if (candidate.device.manufacturer) {
-        exportData.device.manufacturer = candidate.device.manufacturer;
-      }
-
-      if (candidate.device.frequencyInfo) {
-        exportData.device.frequencyInfo = candidate.device.frequencyInfo;
-      }
-
-      if (includeRawData) {
-        exportData.device.rawData = candidate.device.rawData;
-      }
 
       return exportData;
     });
