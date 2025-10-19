@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ['@headlessui/react', 'lucide-react'],
   },
 
+  
   // Configure images for production
   images: {
     unoptimized: true, // Better for Raspberry Pi performance

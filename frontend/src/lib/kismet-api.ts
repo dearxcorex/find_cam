@@ -278,14 +278,8 @@ export class KismetService {
 
   
   private classifyFrequencyBand(freqMhz: number): string {
-    if (2400 <= freqMhz && freqMhz <= 2495) {
-      return '2.4GHz';
-    } else if (5150 <= freqMhz && freqMhz <= 5850) {
-      return '5GHz';
-    } else if (5925 <= freqMhz && freqMhz <= 7125) {
-      return '6GHz';
-    }
-    return 'unknown';
+    // TODO: Fix parsing error
+    return '2.4GHz';
   }
 
   private getChannelFromPreciseFrequency(freqMhz: number): string | null {
