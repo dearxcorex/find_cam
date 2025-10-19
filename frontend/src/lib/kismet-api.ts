@@ -228,6 +228,18 @@ export class KismetService {
     };
   }
 
+  private convertToMhz(rawFreq: number): number | null {
+    if (rawFreq < 1000) {        // Likely GHz
+      return rawFreq * 1000;
+    } else if (rawFreq < 1000000) {   // Likely MHz
+      return rawFreq;
+    } else if (rawFreq < 10000000) {  // Likely KHz
+      return rawFreq / 1000;
+    } else {                   // Likely Hz
+      return rawFreq / 1000000;
+    }
+  }
+
   private createFrequencyInfo(rawFrequency: number | undefined, channelStr: string): FrequencyInfo | null {
     if (!rawFrequency) {
       return null;
@@ -264,24 +276,13 @@ export class KismetService {
     }
   }
 
-  private convertToMhz(rawFreq: number): number | null {
-    if (rawFreq < 1000) {        // Likely GHz
-      return rawFreq * 1000;
-    } else if (rawFreq < 1000000) {   // Likely MHz
-      return rawFreq;
-    } else if (rawFreq < 10000000) {  // Likely KHz
-      return rawFreq / 1000;
-    } else {                   // Likely Hz
-      return rawFreq / 1000000;
-    }
-  }
-
-  private classifyFrequencyBand(freqMhz: number): '2.4GHz' | '5GHz' | '6GHz' | 'unknown' {
-    if (2400 <= freqMhz <= 2495) {
+  
+  private classifyFrequencyBand(freqMhz: number): string {
+    if (2400 <= freqMhz && freqMhz <= 2495) {
       return '2.4GHz';
-    } else if (5150 <= freqMhz <= 5850) {
+    } else if (5150 <= freqMhz && freqMhz <= 5850) {
       return '5GHz';
-    } else if (5925 <= freqMhz <= 7125) {
+    } else if (5925 <= freqMhz && freqMhz <= 7125) {
       return '6GHz';
     }
     return 'unknown';
