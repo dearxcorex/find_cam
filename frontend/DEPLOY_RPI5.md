@@ -76,11 +76,12 @@ HTTPS_PORT=443
 ### Raspberry Pi 5 Specific Optimizations
 The `docker-compose.rpi5.yml` includes:
 
-- **Memory**: 2GB limit (optimized for 8GB RAM Pi 5)
-- **CPU**: 2 cores allocated (of 4 available)
-- **Cache**: Dedicated volumes for better I/O performance
+- **Memory**: Optimized for 8GB RAM Pi 5 (no limits to avoid cgroup warnings)
+- **CPU**: ARM64 architecture optimizations
+- **Cache**: Local bind mount for better I/O performance
 - **Health Checks**: Longer timeouts suitable for ARM architecture
 - **Startup**: Extended grace period for slower ARM boot
+- **Compatibility**: Resource limits commented out to avoid cgroup issues
 
 ## 🚀 Deployment Steps
 
@@ -98,7 +99,7 @@ nano .env  # Edit with your configuration
 
 ### 3. Create Required Directories
 ```bash
-mkdir -p data logs docker/tmp/kismet-cache
+mkdir -p data logs cache
 ```
 
 ### 4. Deploy Application
@@ -206,6 +207,25 @@ cp .env .env.backup
 ## 🔧 Troubleshooting
 
 ### Common Issues
+
+#### Memory Limit Warnings
+```
+ERROR: Your kernel does not support memory soft limit capabilities
+```
+**Solution**: The RPi5 configuration has resource limits commented out to avoid these warnings. If you still see them, ensure you're using the correct file:
+```bash
+docker-compose -f docker-compose.rpi5.yml down
+docker-compose -f docker-compose.rpi5.yml up -d
+```
+
+#### Volume Mount Errors
+```
+ERROR: no such file or directory
+```
+**Solution**: Create the required directories before starting:
+```bash
+mkdir -p data logs cache
+```
 
 #### Container Won't Start
 ```bash

@@ -32,7 +32,7 @@ services:
       - ./data:/app/data
       - ./logs:/app/logs
       # RPi5 specific volume for better I/O performance
-      - rpi5-cache:/app/.next/cache
+      - ./cache:/app/.next/cache
     networks:
       - kismet-network
     healthcheck:
@@ -41,15 +41,16 @@ services:
       timeout: 15s    # Longer timeout for RPi5
       retries: 3
       start_period: 60s  # Longer startup time for RPi5
-    # Raspberry Pi 5 Resource Limits (Optimized for 8GB RAM)
-    deploy:
-      resources:
-        limits:
-          memory: 2G      # Increased for RPi5's 8GB RAM
-          cpus: '2.0'     # Use 2 of the 4 cores
-        reservations:
-          memory: 512M    # Minimum memory for good performance
-          cpus: '0.5'     # Minimum CPU allocation
+    # Resource limits commented out to avoid cgroup warnings on RPi5
+    # Uncomment if you have proper cgroup support
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 2G      # Increased for RPi5's 8GB RAM
+    #       cpus: '2.0'     # Use 2 of the 4 cores
+    #     reservations:
+    #       memory: 512M    # Minimum memory for good performance
+    #       cpus: '0.5'     # Minimum CPU allocation
 
   # Optional: Nginx reverse proxy for production (RPi5 optimized)
   nginx:
@@ -83,13 +84,7 @@ networks:
         - subnet: 172.20.0.0/16
 
 volumes:
-  # RPi5 optimized volumes with better performance
-  rpi5-cache:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /tmp/kismet-cache
+  # Simplified volumes for better compatibility
   rpi5-nginx-cache:
     driver: local
   rpi5-nginx-logs:
