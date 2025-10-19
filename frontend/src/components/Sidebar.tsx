@@ -1,16 +1,14 @@
 'use client';
 
-import { ViewMode } from '@/types/kismet';
+import { ViewMode, FilterOptions } from '@/types/kismet';
 
 interface SidebarProps {
-  filters: any;
-  onFilterChange: (filters: any) => void;
+  filters: FilterOptions;
+  onFilterChange: (filters: Partial<FilterOptions>) => void;
   onClearFilters: () => void;
   viewMode: ViewMode;
   onViewModeChange: (viewMode: ViewMode) => void;
   manufacturers: string[];
-  categories: string[];
-  frequencyBands: string[];
   channels: string[];
 }
 
@@ -21,8 +19,6 @@ export function Sidebar({
   viewMode,
   onViewModeChange,
   manufacturers,
-  categories,
-  frequencyBands,
   channels
 }: SidebarProps) {
   const hasActiveFilters = Object.values(filters).some(v =>
@@ -106,7 +102,9 @@ export function Sidebar({
             </label>
             <select
               value={filters.categoryFilter}
-              onChange={(e) => onFilterChange({ categoryFilter: e.target.value })}
+              onChange={(e) => onFilterChange({
+              categoryFilter: e.target.value ? e.target.value as 'camera' | 'networking' | 'computing' | 'iot' : undefined
+            })}
               className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
             >
               <option value="">All categories</option>
@@ -125,7 +123,9 @@ export function Sidebar({
             </label>
             <select
               value={filters.frequencyBand}
-              onChange={(e) => onFilterChange({ frequencyBand: e.target.value })}
+              onChange={(e) => onFilterChange({
+              frequencyBand: e.target.value ? e.target.value as '2.4GHz' | '5GHz' | '6GHz' : undefined
+            })}
               className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
             >
               <option value="">All bands</option>
@@ -144,7 +144,7 @@ export function Sidebar({
               type="number"
               step="0.001"
               value={filters.exactFrequency || ''}
-              onChange={(e) => onFilterChange({ exactFrequency: e.target.value ? parseFloat(e.target.value) : null })}
+              onChange={(e) => onFilterChange({ exactFrequency: e.target.value ? parseFloat(e.target.value) : undefined })}
               className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
               placeholder="e.g., 2.437"
             />
@@ -209,7 +209,7 @@ export function Sidebar({
                 className="flex-1"
               />
               <span className="text-sm text-gray-600 dark:text-gray-400 w-12">
-                {Math.round(filters.minConfidence * 100)}%
+                {Math.round((filters.minConfidence || 0.3) * 100)}%
               </span>
             </div>
             <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -329,8 +329,8 @@ export function Sidebar({
               {filters.channelFilter && (
                 <li>• Channel: {filters.channelFilter}</li>
               )}
-              {filters.minConfidence > 0.3 && (
-                <li>• Confidence: ≥{Math.round(filters.minConfidence * 100)}%</li>
+              {(filters.minConfidence || 0.3) > 0.3 && (
+                <li>• Confidence: ≥{Math.round((filters.minConfidence || 0.3) * 100)}%</li>
               )}
               {filters.interferencePriority && (
                 <li>• Priority: {filters.interferencePriority}</li>

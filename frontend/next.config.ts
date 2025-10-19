@@ -24,8 +24,7 @@ const nextConfig: NextConfig = {
   // Strict mode for better error handling
   reactStrictMode: true,
 
-  // Enable SWR minification
-  swcMinify: true,
+  // Enable minification (default in production)
 };
 
 export default nextConfig;

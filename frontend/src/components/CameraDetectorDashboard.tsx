@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import useSWR from 'swr';
 import { KismetService, KismetConfig } from '@/lib/kismet-api';
-import { Device, CameraCandidate, ViewMode } from '@/types/kismet';
+import { CameraCandidate, ViewMode } from '@/types/kismet';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import { DeviceGrid } from './DeviceGrid';
@@ -25,10 +25,10 @@ export function CameraDetectorDashboard({ kismetService, config, onDisconnect }:
   const [viewMode, setViewMode] = useState<ViewMode>({ type: 'default', label: 'Default View' });
   const [filters, setFilters] = useState({
     manufacturerFilter: '',
-    categoryFilter: '',
-    exactFrequency: null as number | null,
+    categoryFilter: undefined as 'camera' | 'networking' | 'computing' | 'iot' | undefined,
+    exactFrequency: undefined as number | undefined,
     frequencyRange: '',
-    frequencyBand: '',
+    frequencyBand: undefined as '2.4GHz' | '5GHz' | '6GHz' | undefined,
     channelFilter: '',
     minConfidence: 0.3,
     interferencePriority: undefined as 'HIGH' | 'MEDIUM' | 'LOW' | undefined,
@@ -54,7 +54,9 @@ export function CameraDetectorDashboard({ kismetService, config, onDisconnect }:
   );
 
   // Identify camera candidates from devices
-  const cameraCandidates = devices ? kismetService.identifyCameraDevices(devices) : [];
+  const cameraCandidates = useMemo(() => {
+    return devices ? kismetService.identifyCameraDevices(devices) : [];
+  }, [devices, kismetService]);
 
   // Apply filters to camera candidates
   const filteredCandidates = useCallback(() => {
@@ -113,10 +115,10 @@ export function CameraDetectorDashboard({ kismetService, config, onDisconnect }:
   const handleClearFilters = () => {
     setFilters({
       manufacturerFilter: '',
-      categoryFilter: '',
-      exactFrequency: null,
+      categoryFilter: undefined,
+      exactFrequency: undefined,
       frequencyRange: '',
-      frequencyBand: '',
+      frequencyBand: undefined,
       channelFilter: '',
       minConfidence: 0.3,
       interferencePriority: undefined,
@@ -128,19 +130,11 @@ export function CameraDetectorDashboard({ kismetService, config, onDisconnect }:
 
   // Get unique values for filter dropdowns
   const manufacturers = Array.from(new Set(
-    cameraCandidates.map(c => c.device.manufacturer?.name).filter(Boolean)
-  )).sort();
-
-  const categories = Array.from(new Set(
-    cameraCandidates.map(c => c.device.manufacturer?.category).filter(Boolean)
-  )).sort();
-
-  const frequencyBands = Array.from(new Set(
-    cameraCandidates.map(c => c.device.frequencyInfo?.band).filter(Boolean)
+    cameraCandidates.map(c => c.device.manufacturer?.name).filter((name): name is string => Boolean(name))
   )).sort();
 
   const channels = Array.from(new Set(
-    cameraCandidates.map(c => c.device.frequencyInfo?.channel).filter(Boolean)
+    cameraCandidates.map(c => c.device.frequencyInfo?.channel).filter((ch): ch is string => Boolean(ch))
   )).sort();
 
   return (
@@ -167,8 +161,6 @@ export function CameraDetectorDashboard({ kismetService, config, onDisconnect }:
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           manufacturers={manufacturers}
-          categories={categories}
-          frequencyBands={frequencyBands}
           channels={channels}
         />
 
@@ -181,7 +173,6 @@ export function CameraDetectorDashboard({ kismetService, config, onDisconnect }:
               cameraCandidates={cameraCandidates.length}
               filteredDevices={filteredDevices.length}
               manufacturers={manufacturers.length}
-              frequencyBands={frequencyBands.length}
             />
 
             {/* Device display based on view mode */}

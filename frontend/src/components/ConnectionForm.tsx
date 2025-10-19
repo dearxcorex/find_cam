@@ -20,7 +20,7 @@ export function ConnectionForm({ onConnect, initialConfig, connectionError }: Co
     setIsConnecting(false);
   };
 
-  const handleInputChange = (field: keyof KismetConfig, value: any) => {
+  const handleInputChange = (field: keyof KismetConfig, value: string | boolean | number) => {
     setConfig(prev => ({
       ...prev,
       [field]: value

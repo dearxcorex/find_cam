@@ -50,11 +50,11 @@ export function DeviceModal({ device, isOpen, onClose }: DeviceModalProps) {
   const extractPacketData = () => {
     const rawData = device.device.rawData;
     return {
-      totalPackets: rawData['kismet.device.base.packets.total'] || 0,
-      rxPackets: rawData['kismet.device.base.packets.rx_total'] || 0,
-      txPackets: rawData['kismet.device.base.packets.tx_total'] || 0,
-      dataPackets: rawData['kismet.device.base.packets.data'] || 0,
-      llcPackets: rawData['kismet.device.base.packets.llc'] || 0
+      totalPackets: Number(rawData['kismet.device.base.packets.total'] || 0),
+      rxPackets: Number(rawData['kismet.device.base.packets.rx_total'] || 0),
+      txPackets: Number(rawData['kismet.device.base.packets.tx_total'] || 0),
+      dataPackets: Number(rawData['kismet.device.base.packets.data'] || 0),
+      llcPackets: Number(rawData['kismet.device.base.packets.llc'] || 0)
     };
   };
 

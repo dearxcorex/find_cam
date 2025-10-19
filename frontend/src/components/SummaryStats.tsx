@@ -3,15 +3,13 @@ interface SummaryStatsProps {
   cameraCandidates: number;
   filteredDevices: number;
   manufacturers: number;
-  frequencyBands: number;
 }
 
 export function SummaryStats({
   totalDevices,
   cameraCandidates,
   filteredDevices,
-  manufacturers,
-  frequencyBands
+  manufacturers
 }: SummaryStatsProps) {
   const cameraPercentage = totalDevices > 0 ? (cameraCandidates / totalDevices * 100).toFixed(1) : '0.0';
 

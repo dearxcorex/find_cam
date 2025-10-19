@@ -5,12 +5,14 @@ import {
   KismetStatusResponse,
   ManufacturerInfo,
   FrequencyInfo,
+  InterferenceInfo,
   PacketData,
-  FilterOptions
+  ManufacturerDatabaseEntry,
+  KismetConfig
 } from '@/types/kismet';
 
 // Enhanced manufacturer database with categories and confidence
-export const MANUFACTURER_DATABASE: Record<string, any> = {
+export const MANUFACTURER_DATABASE: Record<string, ManufacturerDatabaseEntry> = {
   // Camera Manufacturers
   "00:12:15": {name: "Axis Communications", category: "camera", confidence: 0.9},
   "00:04:23": {name: "Canon", category: "camera", confidence: 0.85},
@@ -52,29 +54,22 @@ export const MANUFACTURER_DATABASE: Record<string, any> = {
 
   // Additional Chinese/IoT Camera Brands
   "94:F8:27": {name: "Shanghai Imilab Technology Co.Ltd", category: "camera", confidence: 0.85},
-  "28:6E:D4": {name: "Reolink", category: "camera", confidence: 0.85}, // Already exists, keeping for consistency
-  "64:09:80": {name: "Xiaomi Communications", category: "iot", confidence: 0.8},
+    "64:09:80": {name: "Xiaomi Communications", category: "iot", confidence: 0.8},
   "50:8F:4C": {name: "Xiaomi Communications", category: "iot", confidence: 0.8},
-  "34:CE:00": {name: "Xiaomi Communications", category: "iot", confidence: 0.8},
-  "A0:91:25": {name: "Hiseeu", category: "camera", confidence: 0.8},
-  "AC:5A:FC": {name: "ZOSI", category: "camera", confidence: 0.75},
-  "B4:42:3F": {name: "TP-Link Tapo", category: "camera", confidence: 0.8},
+    "A0:91:25": {name: "Hiseeu", category: "camera", confidence: 0.8},
+    "B4:42:3F": {name: "TP-Link Tapo", category: "camera", confidence: 0.8},
   "50:C7:BF": {name: "TP-Link Tapo", category: "camera", confidence: 0.8},
-  "00:12:1B": {name: "Xiaomi Mi Home", category: "camera", confidence: 0.8},
-  "28:E3:1F": {name: "EZVIZ", category: "camera", confidence: 0.85},
+    "28:E3:1F": {name: "EZVIZ", category: "camera", confidence: 0.85},
   "70:4F:81": {name: "EZVIZ", category: "camera", confidence: 0.85},
-  "40:B4:CD": {name: "Ring (Amazon)", category: "camera", confidence: 0.85},
-
+  
   // Networking Equipment (often confused with cameras)
   "00:1B:11": {name: "Ubiquiti Networks", category: "networking", confidence: 0.7},
   "04:18:D6": {name: "Ubiquiti Networks", category: "networking", confidence: 0.7},
   "80:2A:A8": {name: "Ubiquiti Networks", category: "networking", confidence: 0.7},
   "E8:94:F6": {name: "Ubiquiti Networks", category: "networking", confidence: 0.7},
   "00:C0:CA": {name: "TP-Link", category: "networking", confidence: 0.7},
-  "50:C7:BF": {name: "TP-Link", category: "networking", confidence: 0.7},
-  "68:FF:7B": {name: "TP-Link", category: "networking", confidence: 0.7},
-  "00:1E:58": {name: "Netgear", category: "networking", confidence: 0.7},
-  "30:46:9A": {name: "Netgear", category: "networking", confidence: 0.7},
+    "68:FF:7B": {name: "TP-Link", category: "networking", confidence: 0.7},
+    "30:46:9A": {name: "Netgear", category: "networking", confidence: 0.7},
   "A0:C5:89": {name: "Netgear", category: "networking", confidence: 0.7},
   "00:04:ED": {name: "Linksys", category: "networking", confidence: 0.7},
   "00:18:01": {name: "Linksys", category: "networking", confidence: 0.7},
@@ -98,8 +93,7 @@ export const MANUFACTURER_DATABASE: Record<string, any> = {
 
   // Smart Home & IoT
   "00:12:1B": {name: "Nest Labs", category: "camera", confidence: 0.85},
-  "18:B4:30": {name: "Nest Labs", category: "camera", confidence: 0.85},
-  "64:16:66": {name: "Nest Labs", category: "camera", confidence: 0.85},
+    "64:16:66": {name: "Nest Labs", category: "camera", confidence: 0.85},
 };
 
 // Manufacturer name normalization and aliases
@@ -262,7 +256,7 @@ export class KismetService {
         channelWidth,
         band,
         isStandardWifi,
-        interferenceInfo
+        interferenceInfo || undefined
       };
     } catch (error) {
       console.error('Error processing frequency:', error);
@@ -307,7 +301,7 @@ export class KismetService {
     return freqToChannel[freqMhz] || null;
   }
 
-  private analyzeInterference(freqMhz: number, channel: string | null): any {
+  private analyzeInterference(freqMhz: number, channel: string | null): InterferenceInfo | null {
     if (!freqMhz) return null;
 
     const channelNumber = channel ? parseInt(channel) : null;
@@ -317,7 +311,7 @@ export class KismetService {
     let priority: 'HIGH' | 'MEDIUM' | 'LOW' = 'LOW';
     let regulatoryCompliance: 'COMPLIANT' | 'QUESTIONABLE' | 'NON_COMPLIANT' = 'COMPLIANT';
     let overlapsWith: number[] = [];
-    let recommendations: string[] = [];
+    const recommendations: string[] = [];
     let isExtendedChannel = false;
     let isDFSChannel = false;
 
@@ -455,7 +449,7 @@ export class KismetService {
     rawName?: string
   ): ManufacturerInfo {
     const normalizedName = this.normalizeManufacturerName(name);
-    const category = this.determineManufacturerCategory(normalizedName, name);
+    const category = this.determineManufacturerCategory(normalizedName);
     const isKnownCamera = category === 'camera' || this.isCameraBrand(normalizedName);
     const aliases = MANUFACTURER_ALIASES[normalizedName] || [];
 
@@ -496,7 +490,7 @@ export class KismetService {
     return name.trim();
   }
 
-  private determineManufacturerCategory(normalizedName: string, originalName: string): 'camera' | 'networking' | 'computing' | 'iot' | 'unknown' {
+  private determineManufacturerCategory(normalizedName: string): 'camera' | 'networking' | 'computing' | 'iot' | 'unknown' {
     // Check our database first
     for (const dbInfo of Object.values(MANUFACTURER_DATABASE)) {
       if (dbInfo.name === normalizedName) {
@@ -687,7 +681,7 @@ export class KismetService {
     return { confidence, reasons };
   }
 
-  private extractPacketData(rawDeviceData: Record<string, any>): PacketData {
+  private extractPacketData(rawDeviceData: KismetDeviceResponse): PacketData {
     return {
       totalPackets: rawDeviceData['kismet.device.base.packets.total'] || 0,
       rxPackets: rawDeviceData['kismet.device.base.packets.rx_total'] || 0,
@@ -796,7 +790,7 @@ export class KismetService {
         const freq = candidate.device.frequencyInfo?.frequencyGhz;
         return freq && startFreq <= freq && freq <= endFreq;
       });
-    } catch (error) {
+    } catch {
       return [];
     }
   }
@@ -912,7 +906,25 @@ export class KismetService {
   // Export methods
   exportToJSON(candidates: CameraCandidate[], includeRawData: boolean = false): string {
     const data = candidates.map(candidate => {
-      const exportData: any = {
+      const exportData: {
+        device: {
+          key: string;
+          mac: string;
+          name: string;
+          type: string;
+          signal: number | null;
+          channel: string | null;
+          vendor: string | null;
+          ipAddresses: string[];
+          lastSeen: string | null;
+        };
+        confidence: number;
+        reasons: string[];
+        openPorts: number[];
+        manufacturer?: ManufacturerInfo;
+        frequencyInfo?: FrequencyInfo;
+        rawData?: Record<string, unknown>;
+      } = {
         device: {
           key: candidate.device.key,
           mac: candidate.device.mac,
@@ -974,3 +986,6 @@ export class KismetService {
     return [headers, ...rows].map(row => row.join(',')).join('\n');
   }
 }
+
+// Re-export types for convenience
+export type { KismetConfig };

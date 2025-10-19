@@ -1,6 +1,7 @@
 'use client';
 
-import { CameraCandidate, ViewMode, KismetService } from '@/types/kismet';
+import { CameraCandidate, ViewMode } from '@/types/kismet';
+import { KismetService } from '@/lib/kismet-api';
 
 interface GroupedViewProps {
   candidates: CameraCandidate[];
@@ -75,7 +76,16 @@ export function GroupedView({ candidates, viewMode, onDeviceClick, kismetService
         const avgConfidence = groupCandidates.reduce((sum, c) => sum + c.confidence, 0) / groupCandidates.length;
 
         // Get group-specific information
-        let groupInfo: any = {};
+        let groupInfo: {
+          category?: string;
+          icon?: string;
+          band?: string;
+          channel?: string;
+          priority?: string;
+          risk?: number;
+          compliance?: string;
+          isExtended?: boolean;
+        } = {};
         if (viewMode.type === 'group-by-manufacturer' && groupCandidates[0]) {
           const manufacturer = groupCandidates[0].device.manufacturer;
           if (manufacturer) {
@@ -89,7 +99,7 @@ export function GroupedView({ candidates, viewMode, onDeviceClick, kismetService
           if (freqInfo) {
             groupInfo = {
               band: freqInfo.band,
-              channel: freqInfo.channel,
+              channel: freqInfo.channel || undefined,
               icon: getFrequencyBandIcon(freqInfo.band)
             };
           }

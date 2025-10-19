@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { CameraCandidate, KismetService, ExportOptions } from '@/types/kismet';
+import { CameraCandidate, ExportOptions } from '@/types/kismet';
+import { KismetService } from '@/lib/kismet-api';
 
 interface ExportModalProps {
   candidates: CameraCandidate[];
@@ -58,7 +59,7 @@ export function ExportModal({ candidates, isOpen, onClose, kismetService }: Expo
     }
   };
 
-  const handleOptionChange = (key: keyof ExportOptions, value: any) => {
+  const handleOptionChange = (key: keyof ExportOptions, value: string | boolean) => {
     setExportOptions(prev => ({
       ...prev,
       [key]: value

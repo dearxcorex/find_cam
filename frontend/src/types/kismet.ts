@@ -44,7 +44,7 @@ export interface Device {
   frequencyInfo?: FrequencyInfo | null;
   ipAddresses: string[];
   lastSeen?: string | null;
-  rawData: Record<string, any>;
+  rawData: Record<string, unknown>;
 }
 
 export interface PacketData {
@@ -63,7 +63,7 @@ export interface CameraCandidate {
 }
 
 export interface KismetDeviceResponse {
-  [key: string]: any;
+  [key: string]: unknown;
   'kismet.device.base.key'?: string;
   'kismet.device.base.macaddr'?: string;
   'kismet.device.base.commonname'?: string;
@@ -95,6 +95,7 @@ export interface KismetStatusResponse {
   };
   kismet_system_uuid: string;
   kismet_system_hostname: string;
+  error?: string;
 }
 
 export interface FilterOptions {
@@ -148,4 +149,12 @@ export interface KismetConfig {
   useMacApi: boolean;
   autoRefresh: boolean;
   refreshInterval: number;
+}
+
+export interface ManufacturerDatabaseEntry {
+  name: string;
+  category: 'camera' | 'networking' | 'computing' | 'iot' | 'unknown';
+  confidence: number;
+  aliases?: string[];
+  source?: 'hardcoded' | 'mac_api' | 'kismet';
 }
