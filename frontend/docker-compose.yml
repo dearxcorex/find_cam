@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  # Camera Detector Web Application
+  camera-detector:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # Build for ARM64 architecture (Raspberry Pi)
+      platforms:
+        - linux/amd64
+        - linux/arm64
+    container_name: kismet-camera-detector
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:3000}
+      # Kismet Configuration
+      - KISMET_HOST=${KISMET_HOST:-http://192.168.0.128}
+      - KISMET_PORT=${KISMET_PORT:-2501}
+      - KISMET_API_KEY=${KISMET_API_KEY:-EBE296C5407BC8C834F8F85FDE63711F}
+      # Performance Settings
+      - NODE_OPTIONS=${NODE_OPTIONS:--max-old-space-size=512}
+    volumes:
+      # Persist data and logs
+      - ./data:/app/data
+      - ./logs:/app/logs
+    networks:
+      - kismet-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # Resource limits for Raspberry Pi
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  # Optional: Nginx reverse proxy for production
+  nginx:
+    image: nginx:alpine
+    container_name: kismet-nginx
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - camera-detector
+    networks:
+      - kismet-network
+    profiles:
+      - with-nginx
+
+networks:
+  kismet-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  kismet-data:
+    driver: local
+  kismet-logs:
+    driver: local
