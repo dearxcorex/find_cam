@@ -1,0 +1,100 @@
+# Raspberry Pi 5 Optimized Configuration
+# This file is specifically optimized for Raspberry Pi 5 deployment
+# Usage: docker-compose -f docker-compose.rpi5.yml up -d
+
+services:
+  # Camera Detector Web Application
+  camera-detector:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # Build for ARM64 architecture (Raspberry Pi 5)
+      platforms:
+        - linux/arm64
+    container_name: kismet-camera-detector-rpi5
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:3000}
+      # Kismet Configuration
+      - KISMET_HOST=${KISMET_HOST:-http://192.168.0.128}
+      - KISMET_PORT=${KISMET_PORT:-2501}
+      - KISMET_API_KEY=${KISMET_API_KEY:-611D867A37D3155BF28FC36A790E412C}
+      # Raspberry Pi 5 Performance Settings
+      - NODE_OPTIONS=${NODE_OPTIONS:--max-old-space-size=1024}
+      # RPi5 specific optimizations
+      - NEXT_TELEMETRY_DISABLED=1
+      - NEXT_MINIMIZE=true
+    volumes:
+      # Persist data and logs
+      - ./data:/app/data
+      - ./logs:/app/logs
+      # RPi5 specific volume for better I/O performance
+      - rpi5-cache:/app/.next/cache
+    networks:
+      - kismet-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 45s  # Slightly longer interval for RPi5
+      timeout: 15s    # Longer timeout for RPi5
+      retries: 3
+      start_period: 60s  # Longer startup time for RPi5
+    # Raspberry Pi 5 Resource Limits (Optimized for 8GB RAM)
+    deploy:
+      resources:
+        limits:
+          memory: 2G      # Increased for RPi5's 8GB RAM
+          cpus: '2.0'     # Use 2 of the 4 cores
+        reservations:
+          memory: 512M    # Minimum memory for good performance
+          cpus: '0.5'     # Minimum CPU allocation
+
+  # Optional: Nginx reverse proxy for production (RPi5 optimized)
+  nginx:
+    image: nginx:alpine
+    container_name: kismet-nginx-rpi5
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/ssl:/etc/nginx/ssl:ro
+      - rpi5-nginx-cache:/var/cache/nginx
+      - rpi5-nginx-logs:/var/log/nginx
+    depends_on:
+      - camera-detector
+    networks:
+      - kismet-network
+    profiles:
+      - with-nginx
+    # RPi5 specific nginx optimizations
+    environment:
+      - NGINX_WORKER_PROCESSES=2
+      - NGINX_WORKER_CONNECTIONS=1024
+
+networks:
+  kismet-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  # RPi5 optimized volumes with better performance
+  rpi5-cache:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /tmp/kismet-cache
+  rpi5-nginx-cache:
+    driver: local
+  rpi5-nginx-logs:
+    driver: local
+  kismet-data:
+    driver: local
+  kismet-logs:
+    driver: local

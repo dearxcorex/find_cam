@@ -350,7 +350,7 @@ export class KismetService {
     }
   }
 
-  async selectInterface(interfaceName: string, options?: {
+  async selectInterface(interfaceName: string, _options?: {
     channel?: string;
     hop?: boolean;
     hopRate?: number;
